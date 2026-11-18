@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MixNet</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0b'/%3E%3Cpath d='M6 10c7 0 8 6 14 6M6 22c7 0 8-6 14-6h6' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" class="logo-bg"/>
+        <path d="M6 10c7 0 8 6 14 6M6 22c7 0 8-6 14-6h6" class="logo-mark"/>
+      </svg>
+      <div>
+        <div class="brand-name">MixNet</div>
+        <div class="brand-sub">Combine all your internet connections</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="status-pill" id="statusPill"><span class="status-icon"></span><span class="status-text">Connecting…</span></div>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch light or dark theme" title="Switch theme">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="banners"></div>
+
+    <section class="card hero" aria-labelledby="heroLabel">
+      <div class="hero-top">
+        <div class="hero-figure">
+          <div class="eyebrow" id="heroLabel">Combined download speed</div>
+          <div class="hero-num"><span id="heroDown">0</span><span class="hero-unit" id="heroDownUnit">Mbps</span></div>
+          <div class="hero-meta">
+            <span>Upload <strong id="heroUp">0 Mbps</strong></span>
+            <span>Open connections <strong id="heroConns">0</strong></span>
+            <span>Transferred <strong id="heroBytes">0 B</strong></span>
+          </div>
+        </div>
+        <div class="mode">
+          <div class="eyebrow" id="modeLabel">Mode</div>
+          <div class="segmented" role="radiogroup" aria-labelledby="modeLabel" id="modeGroup">
+            <button type="button" role="radio" data-mode="speed" aria-checked="true">Mix for speed</button>
+            <button type="button" role="radio" data-mode="backup" aria-checked="false">Backup</button>
+            <button type="button" role="radio" data-mode="latency" aria-checked="false">Low latency</button>
+          </div>
+          <p class="mode-desc" id="modeDesc"></p>
+        </div>
+      </div>
+
+      <div class="legend" id="legend" aria-label="Traffic share by connection, last 10 seconds"></div>
+      <div class="chart-wrap" id="chartWrap">
+        <canvas id="mainChart" role="img" aria-label="Download speed per connection over the last 90 seconds, stacked"></canvas>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <div class="axis-x"><span>90 s ago</span><span>60 s</span><span>30 s</span><span>now</span></div>
+    </section>
+
+    <section aria-labelledby="linksTitle">
+      <div class="section-head">
+        <h2 id="linksTitle">Your connections</h2>
+        <p>Turn a connection on to add it to the mix. Weight sets how big a share of new connections it gets.</p>
+      </div>
+      <div class="links" id="links"></div>
+      <details class="others" id="others" hidden>
+        <summary>Other adapters <span class="muted" id="othersCount"></span></summary>
+        <p class="muted small">Virtual adapters and VPNs. They're off by default; turn one on only if it reaches the internet on its own.</p>
+        <div id="othersList"></div>
+      </details>
+    </section>
+
+    <section class="two-col">
+      <div class="card" aria-labelledby="stTitle">
+        <div class="card-head">
+          <h2 id="stTitle">Speed test</h2>
+          <button class="btn" id="stRun" type="button">Run test</button>
+        </div>
+        <p class="muted small" id="stIntro">Downloads from Cloudflare over each connection on its own, then over all of them mixed.</p>
+        <div class="progress" id="stProgress" hidden>
+          <div class="progress-text" id="stPhase"></div>
+          <div class="progress-track"><div class="progress-fill" id="stFill"></div></div>
+        </div>
+        <div class="bars" id="stBars"></div>
+        <p class="error" id="stError" hidden></p>
+        <div class="st-foot" id="stFoot" hidden>
+          <p class="small muted" id="stGain"></p>
+          <button class="btn ghost" id="stApply" type="button">Set weights from these results</button>
+        </div>
+      </div>
+
+      <div class="card" aria-labelledby="useTitle">
+        <div class="card-head"><h2 id="useTitle">Use the mix</h2></div>
+
+        <div class="setting">
+          <div>
+            <div class="setting-name" id="sysName">Send this computer's apps through MixNet</div>
+            <div class="setting-help" id="sysHelp">Browsers and most apps follow this. If MixNet closes, they go back to your normal connection.</div>
+          </div>
+          <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="sysName" id="sysSwitch"><span></span></button>
+        </div>
+
+        <div class="proxy-box">
+          <div>
+            <div class="setting-help">Or set this proxy in any app (HTTP or SOCKS5)</div>
+            <code id="proxyAddr">127.0.0.1:1080</code>
+          </div>
+          <button class="btn ghost" id="copyBtn" type="button">Copy</button>
+        </div>
+
+        <div class="setting">
+          <div>
+            <div class="setting-name" id="lanName">Share with other devices on my network</div>
+            <div class="setting-help" id="lanHelp">Phones, consoles and other computers can use the mix by setting a proxy.</div>
+          </div>
+          <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lanName" id="lanSwitch"><span></span></button>
+        </div>
+
+        <div class="setting">
+          <div>
+            <div class="setting-name" id="stickyName">Keep each website on one connection</div>
+            <div class="setting-help">Turn on if a site keeps logging you out (some banks check your IP address). Spreads less traffic.</div>
+          </div>
+          <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="stickyName" id="stickySwitch"><span></span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="actTitle">
+      <div class="card-head">
+        <h2 id="actTitle">Live activity</h2>
+        <span class="muted small" id="actCount"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="flows">
+          <thead><tr><th scope="col">Website</th><th scope="col">Sent over</th><th scope="col" class="num">Down</th><th scope="col" class="num">Up</th><th scope="col" class="num">Status</th></tr></thead>
+          <tbody id="flows"><tr class="empty"><td colspan="5">Nothing yet. Turn on "Send this computer's apps through MixNet" or set the proxy in an app.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card explain">
+      <h2>How mixing works</h2>
+      <p>Every app opens connections to websites. MixNet hands each new connection to one of your links: Wi-Fi, Ethernet, a phone over USB, and so on. Browsers, download managers, game launchers and cloud sync open many connections at once, so they get the combined speed of all your links. If a link drops, new connections move to the others within a few seconds.</p>
+      <p class="muted">A single connection, like one plain file download, still runs over one link. Splitting a single connection across links needs a bonding server on the internet to put the pieces back together (that's what paid services such as Speedify run).</p>
+    </section>
+  </main>
+
+  <div class="offline" id="offline" hidden>
+    <div class="card">
+      <h2>Can't reach MixNet</h2>
+      <p class="muted">The MixNet app isn't answering. Start it again with <code>python -m mixnet</code>; this page reconnects by itself.</p>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
